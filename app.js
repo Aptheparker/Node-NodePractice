@@ -6,6 +6,7 @@ const app = express();
 //port setting
 const PORT = 3030;
 
+//middle
 app.use((req, res, next) => {
   console.log('Running...');
   next();
