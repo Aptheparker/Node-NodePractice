@@ -1,48 +1,77 @@
 //require
+const dotenv = require('dotenv');
+dotenv.config();
+
 const express = require('express');
 const path = require('path');
 const morgan = require('morgan');
 const cookieParser = require('cookie-parser');
 const session = require('express-session');
-const { urlencoded } = require('express');
+const nunjucks = require('nunjucks');
+
+const indexRouter = require('./routes');
 
 const app = express();
 
 //port setting
 const PORT = 3030;
 
+//engine
+app.set('view engine', 'html');
+nunjucks.configure('views', {
+  express: app,
+  watch: true,
+});
+
 //middle
 app.use(morgan('dev'));
+app.use('/', express.static(path.join(__dirname, 'public')));
 app.use(cookieParser());
 app.use(
   session({
     resave: false,
     saveUninitialized: false,
-    secret: 'apapap',
+    secret: process.env.COOKIE_SECRET,
     cookie: {
       httpOnly: true,
     },
     name: 'connect.sid',
   })
 );
-app.use('/', (req, res, next) => {
-  if (req.session.id) {
-    express.static(path.join(__dirname, 'public'))(req, res, next);
-  } else {
-    next();
-  }
+
+const multer = require('multer');
+const fs = require('fs');
+
+try {
+  fs.readdirSync('uploads');
+} catch (error) {
+  console.error('새로운 폴더 uploads 생성');
+  fs.mkdirSync('uploads');
+}
+
+const upload = multer({
+  storage: multer.diskStorage({
+    destination(req, file, done) {
+      done(null, 'uploads/');
+    },
+    filename(req, file, done) {
+      const ext = path.extname(file.originalname);
+      done(null, path.basename(file.originalname, ext) + Date.now() + ext);
+    },
+  }),
+  limits: { fileSize: 5 * 1024 * 1024 },
 });
-app.use(express.json());
-app.use(urlencoded({ extended: true }));
 
 //router
-app.get('/', (req, res) => {
-  req.cookies;
-  res.status(200).sendFile(path.join(__dirname, 'index.html'));
+app.use('/', indexRouter);
+
+app.get('/upload', (req, res) => {
+  res.status(200).sendFile(path.join(__dirname, 'multipart.html'));
 });
 
-app.get('/about', (req, res) => {
-  res.status(200).send('about express');
+app.post('/upload', upload.single('image'), (req, res) => {
+  console.log(req.file);
+  res.send('ok');
 });
 
 app.use((req, res, next) => {
