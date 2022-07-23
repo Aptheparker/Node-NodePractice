@@ -1,28 +1,52 @@
 //require
 const express = require('express');
 const path = require('path');
+const morgan = require('morgan');
+const cookieParser = require('cookie-parser');
+const session = require('express-session');
+const { urlencoded } = require('express');
+
 const app = express();
 
 //port setting
 const PORT = 3030;
 
 //middle
-app.use((req, res, next) => {
-  console.log('Running...');
-  next();
+app.use(morgan('dev'));
+app.use(cookieParser());
+app.use(
+  session({
+    resave: false,
+    saveUninitialized: false,
+    secret: 'apapap',
+    cookie: {
+      httpOnly: true,
+    },
+    name: 'connect.sid',
+  })
+);
+app.use('/', (req, res, next) => {
+  if (req.session.id) {
+    express.static(path.join(__dirname, 'public'))(req, res, next);
+  } else {
+    next();
+  }
 });
+app.use(express.json());
+app.use(urlencoded({ extended: true }));
 
 //router
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
+  req.cookies;
+  res.status(200).sendFile(path.join(__dirname, 'index.html'));
 });
 
 app.get('/about', (req, res) => {
-  res.send('about express');
+  res.status(200).send('about express');
 });
 
 app.use((req, res, next) => {
-  res.send('404지롱');
+  res.status(404).send('404지롱');
 });
 
 app.use((err, req, res, next) => {
