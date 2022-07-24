@@ -9,6 +9,7 @@ const cookieParser = require('cookie-parser');
 const session = require('express-session');
 const nunjucks = require('nunjucks');
 
+const { sequelize } = require('./models');
 const indexRouter = require('./routes');
 
 const app = express();
@@ -22,6 +23,16 @@ nunjucks.configure('views', {
   express: app,
   watch: true,
 });
+
+//squelize
+sequelize
+  .sync({ force: false })
+  .then(() => {
+    console.log('database connected');
+  })
+  .catch((err) => {
+    console.error(err);
+  });
 
 //middle
 app.use(morgan('dev'));
